@@ -2,6 +2,7 @@ use std::env;
 use std::fs;
 use std::process;
 use std::time::Instant;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::cmp::Ordering;
 
@@ -47,6 +48,7 @@ fn read_data(filename: &str) -> Vec<Vec<Vec<String>>> {
 		.collect()
 }
 
+// Return the number of steps to take for an instruction
 fn move_for(instruction: &str) -> i64 {
 	if instruction.len() > 1 {
 		return match instruction[1..].parse() {
@@ -58,6 +60,8 @@ fn move_for(instruction: &str) -> i64 {
 	return 0;
 }
 
+// Return the 2D direction vector for an instruction
+// R=east, L=west, U=north, D=south
 fn dir_for(instruction: &str) -> Point {
 	if instruction.len() > 1 {
 		return match instruction.chars().nth(0).unwrap() {
@@ -72,26 +76,33 @@ fn dir_for(instruction: &str) -> Point {
 	return Point {x:0, y:0}
 }
 
-// Make set of points that lie on the wire described by the move instructions
-fn make_wire(instructions: &Vec<String>, origin: &Point) -> HashSet<Point> {
-	let mut circuit = HashSet::<Point>::new();
+// Return a wire constructed from the directional instructions.
+// The wire is a HashMap of points and the minimum number of steps 
+// (from starting point) to get to the point on the wire.
+fn make_wire(instructions: &Vec<String>, origin: &Point) -> HashMap<Point, u64> {
+	let mut circuit = HashMap::<Point, u64>::new();
 	let mut p = origin.clone();
+	let mut steps = 0;
 
 	for node in instructions {
 		let dir = dir_for(node);
 		let n = move_for(node);
 
-		circuit.insert(p.clone());
-		for _i in 0..n {
+		// don't add starting point (includes origin)
+		// circuit.entry(p.clone()).or_insert(0);
+		for _step in 0..n {
 			p.add(&dir);
-			circuit.insert(p.clone());
+			steps += 1;
+			circuit.entry(p.clone()).or_insert(steps);
 		}
 	}
 
 	return circuit;
 }
 
-fn make_circuit(wires: &Vec<Vec<String>>, origin: &Point) -> Vec<HashSet<Point>> {
+// Return collection of wires that make up the circuit.
+// (there are only ever two wires. This code can handle any number.)
+fn make_circuit(wires: &Vec<Vec<String>>, origin: &Point) -> Vec<HashMap<Point, u64>> {
 	let mut circuit = Vec::new();
 
 	for instructions in wires {
@@ -100,45 +111,56 @@ fn make_circuit(wires: &Vec<Vec<String>>, origin: &Point) -> Vec<HashSet<Point>>
 	}
 
 	return circuit;
-
 }
 
-fn find_intersections(wires: &Vec<HashSet<Point>>) -> HashSet<Point> {
+// Return a HashSet of the points where the collection of wires intersect
+fn find_intersections(wires: &Vec<HashMap<Point, u64>>) -> HashSet<Point> {
 	if wires.is_empty() {
 		return HashSet::new();
 	}
 
-	let mut intersection = wires[0].clone();
+	let mut intersection: HashSet<Point> = wires[0].keys().cloned().collect();
+
 	for wire in wires.iter().skip(1) {
-		intersection = intersection
-			.intersection(wire)
-			.cloned()
-			.collect();
+		intersection.retain(|k| wire.contains_key(k));
 	}
 
 	return intersection;
 }
 
+// Part 1
 fn part1(circuits: &Vec<Vec<Vec<String>>>) -> usize {
 	let origin = Point {x:0, y:0};
 
-	let mut closest: usize = 0;	
-	for wires in circuits {
-		let circuit = make_circuit(wires, &origin);
-
-		closest = find_intersections(&circuit)
-			.iter()
-			.filter(|p| !(p.x == origin.x && p.y == origin.y))
-			.min().expect("Oops")
-			.manhattan_distance(&origin)
-			.try_into().unwrap();
-	}
-
-	return closest;
+	// return the manhattan distance to the closest intersection
+	return circuits.iter()
+		.map(|instr| make_circuit(instr, &origin))
+		.map(|circuit| find_intersections(&circuit).iter()
+						.min().expect("Cannot find a minimum intersection.")
+						.manhattan_distance(&origin).try_into().unwrap()
+					)
+		.min().expect("No minimum circuit distance.");
 }
 
-fn part2(wires: &Vec<Vec<Vec<String>>>) -> usize {
-	return wires.len();
+// Part 2
+fn part2(circuits: &Vec<Vec<Vec<String>>>) -> usize {
+	let origin = Point {x:0, y:0};
+
+	// return the sum of steps to point `p` for each wire in the circuit
+	fn steps_to(circuit: &Vec<HashMap<Point, u64>>, p: &Point) -> u64 {
+		circuit.iter().fold(0, |acc, w| acc + w.get(p).unwrap())
+	}
+	
+	// return the sum of steps to the closest intersection
+	// closest is the smallest sum of steps across all wires in the circuit
+	return circuits.iter()
+		.map(|instr| make_circuit(instr, &origin))
+		.map(|circuit| find_intersections(&circuit).iter()
+							.map(|p| steps_to(&circuit, &p))
+							.min().expect("Cannot find a minimum intersection.")
+							.try_into().unwrap()
+					)
+		.min().expect("No minimum circuit distance.");
 }
 
 fn main() {
