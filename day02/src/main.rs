@@ -115,21 +115,21 @@ fn main() {
 
 	let start = Instant::now();
 
-	let masses = read_data(&args[1]);
+	let data = read_data(&args[1]);
 	println!(
 		"          parse ({:9.9} ns)",
 		Instant::now().duration_since(start).as_nanos()
 	);
 
 	let p1_start = Instant::now();
-	let p1 = part1(&masses);
+	let p1 = part1(&data);
 	println!(
 		"{p1:>15} ({:9.9} ns)",
 		Instant::now().duration_since(p1_start).as_nanos()
 	);
 
 	let p2_start = Instant::now();
-	let p2 = part2(&masses);
+	let p2 = part2(&data);
 
 	println!(
 		"{p2:>15} ({:9.9} ns)",
