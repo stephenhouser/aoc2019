@@ -25,17 +25,20 @@ fn path_to(universe: &HashMap<String, String>, source: &str, dest: &str) -> Vec<
 
 	let mut current = source;
 	while current != dest {
-		if let Some(next) = universe.get(current) {
-			path.push(next.to_string());
-			current = next;
-		} else {
-			return vec![];
-		}
+		let next = universe.get(current).unwrap();
+		path.push(next.to_string());
+		current = next;
+		// if let Some(next) = universe.get(current) {
+		// 	path.push(next.to_string());
+		// 	current = next;
+		// } else {
+		// 	return vec![];
+		// }
 	}
 
 	return path;
 }
-/* Return how many orbtital transfers are needed to go from 
+/* Return how many orbital transfers are needed to go from 
  * what you orbits to what san orbits.
  */
 fn transfers_needed(universe: &HashMap<String, String>, you: &str, san: &str) -> usize {
