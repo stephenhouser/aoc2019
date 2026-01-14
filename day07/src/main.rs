@@ -34,10 +34,10 @@ impl CPU {
         let o2 = self.load(self.pc + 2, mode2);
         let o3 = self.load(self.pc + 3, 1); // writes always use direct
 
-        let p1 = self.format_operand(self.pc + 1, mode1);
-        let p2 = self.format_operand(self.pc + 2, mode2);
-        let p3 = self.format_operand(self.pc + 3, 1);
-        println!("add\t{p1}, {p2} -> {p3}");
+        // let p1 = self.format_operand(self.pc + 1, mode1);
+        // let p2 = self.format_operand(self.pc + 2, mode2);
+        // let p3 = self.format_operand(self.pc + 3, 1);
+        // println!("add\t{p1}, {p2} -> {p3}");
 
         self.store(usize::try_from(o3).unwrap(), o1 + o2);
         self.pc += 4;
@@ -50,10 +50,10 @@ impl CPU {
         let o2 = self.load(self.pc + 2, mode2);
         let o3 = self.load(self.pc + 3, 1); // writes always use direct
 
-        let p1 = self.format_operand(self.pc + 1, mode1);
-        let p2 = self.format_operand(self.pc + 2, mode2);
-        let p3 = self.format_operand(self.pc + 3, 1);
-        println!("mul\t{p1}, {p2} -> {p3}");
+        // let p1 = self.format_operand(self.pc + 1, mode1);
+        // let p2 = self.format_operand(self.pc + 2, mode2);
+        // let p3 = self.format_operand(self.pc + 3, 1);
+        // println!("mul\t{p1}, {p2} -> {p3}");
 
         self.store(usize::try_from(o3).unwrap(), o1 * o2);
         self.pc += 4;
@@ -67,27 +67,26 @@ impl CPU {
         if self.input.len() >= 1 {
             let value = self.input.pop_front().unwrap();
 
-            let p1 = self.format_operand(self.pc + 1, 1);
-            println!("inp\t{p1} << {value}");
+            // let p1 = self.format_operand(self.pc + 1, 1);
+            // println!("inp\t{p1} << {value}");
             
             let address = usize::try_from(o1).unwrap();
-
             self.store(address, value);
             self.pc += 2;
 
             return true;
         }
 
-        let p1 = self.format_operand(self.pc + 1, 1);
-        println!("inp\t{p1} << No input available");
+        // let p1 = self.format_operand(self.pc + 1, 1);
+        // println!("inp\t{p1} << No input available (pause)\n");
         return false;
     }
 
     fn out(&mut self, mode1: i64) -> bool {
         let o1 = self.load(self.pc + 1, mode1);
 
-        let p1 = self.format_operand(self.pc + 1, 1);
-        println!("out\t{p1}");
+        // let p1 = self.format_operand(self.pc + 1, 1);
+        // println!("out\t{p1} >> {o1}");
 
         self.output.push_back(o1);
         self.pc += 2;
@@ -99,9 +98,9 @@ impl CPU {
         let o1 = self.load(self.pc + 1, mode1);
         let o2 = self.load(self.pc + 2, mode2);
 
-        let p1 = self.format_operand(self.pc + 1, mode1);
-        let p2 = self.format_operand(self.pc + 2, mode2);
-        println!("jit\t{p1}, {p2}");
+        // let p1 = self.format_operand(self.pc + 1, mode1);
+        // let p2 = self.format_operand(self.pc + 2, mode2);
+        // println!("jit\t{p1}, {p2}");
 
         if o1 != 0 {
             self.pc = usize::try_from(o2).unwrap();
@@ -116,9 +115,9 @@ impl CPU {
         let o1 = self.load(self.pc + 1, mode1);
         let o2 = self.load(self.pc + 2, mode2);
 
-        let p1 = self.format_operand(self.pc + 1, mode1);
-        let p2 = self.format_operand(self.pc + 2, mode2);
-        println!("jif\t{p1}, {p2}");
+        // let p1 = self.format_operand(self.pc + 1, mode1);
+        // let p2 = self.format_operand(self.pc + 2, mode2);
+        // println!("jif\t{p1}, {p2}");
 
         if o1 == 0 {
             self.pc = usize::try_from(o2).unwrap();
@@ -134,10 +133,10 @@ impl CPU {
         let o2 = self.load(self.pc + 2, mode2);
         let o3 = self.load(self.pc + 3, 1); // writes always use direct
 
-        let p1 = self.format_operand(self.pc + 1, mode1);
-        let p2 = self.format_operand(self.pc + 2, mode2);
-        let p3 = self.format_operand(self.pc + 3, 1);
-        println!("lt\t{p1}, {p2} -> {p3}");
+        // let p1 = self.format_operand(self.pc + 1, mode1);
+        // let p2 = self.format_operand(self.pc + 2, mode2);
+        // let p3 = self.format_operand(self.pc + 3, 1);
+        // println!("lt\t{p1}, {p2} -> {p3}");
 
         if o1 < o2 {
             self.store(usize::try_from(o3).unwrap(), 1);
@@ -155,10 +154,10 @@ impl CPU {
         let o2 = self.load(self.pc + 2, mode2);
         let o3 = self.load(self.pc + 3, 1); // writes always use direct
 
-        let p1 = self.format_operand(self.pc + 1, mode1);
-        let p2 = self.format_operand(self.pc + 2, mode2);
-        let p3 = self.format_operand(self.pc + 3, 1);
-        println!("eq\t{p1}, {p2} -> {p3}");
+        // let p1 = self.format_operand(self.pc + 1, mode1);
+        // let p2 = self.format_operand(self.pc + 2, mode2);
+        // let p3 = self.format_operand(self.pc + 3, 1);
+        // println!("eq\t{p1}, {p2} -> {p3}");
 
         if o1 == o2 {
             self.store(usize::try_from(o3).unwrap(), 1);
@@ -171,7 +170,7 @@ impl CPU {
     }
 
     fn end(&mut self) -> bool {
-        println!("end\n");
+        // println!("end\n");
 
         self.pc = self.memory.len();
         return true;
@@ -198,8 +197,8 @@ impl CPU {
         let m2 = (instruction / 1000) % 10;
         // let m3 = (instruction / 10000) % 10;
 
-        let pc = self.pc;
-        print!("{pc:04X}:\t");
+        // let pc = self.pc;
+        // print!("{pc:04X}:\t");
 
         return match op {
             1 => self.add(m1, m2),
@@ -238,14 +237,16 @@ impl CPU {
     }
 
     #[allow(dead_code)]
-    fn format_operand(&self, addr: usize, mode: i64) -> String {
-        let s_mode = match mode {
-            1   => "*",
-            _   => "",
-        };
-        let value = self.load(addr, mode);
+    fn format_operand(&self, address: usize, mode: i64) -> String {
+        let operand = self.memory[address];
 
-        format!("{s_mode}{addr}={value}")
+        if mode == 0 {
+            let addr = usize::try_from(operand).unwrap();
+            let value = self.memory[addr];
+            format!("*{address}={addr} ({value})")
+        } else {
+            format!("{address} ({operand})")
+        }
     }
 
     #[allow(dead_code)]
@@ -312,39 +313,50 @@ fn permutations(range: Range<i64>) -> Vec<Vec<i64>> {
 	return permutations;
 }
 
-fn part1(program: &Vec<i64>) -> i64 {
-    fn run(program: &Vec<i64>, input: &Vec<i64>) -> i64 {
-        let mut cpu = build_cpu(&program, input);
-        cpu.run();
-        return cpu.pop_output();
-    }
-    
-	let result = permutations(0..5)
-		.iter()
-		.map(|input| input.iter()	// for each permutation, compute it's output power
-		                .fold(0, |power, &phase| run(&program, &vec![phase, power])))
-		.max().unwrap();
+// Run an amplifier system with phase configuration and return output power.
+fn run_configuration(program: &Vec<i64>, configuration: &Vec<i64>) -> i64 {
+    // println!("Configuration {configuration:?}");
 
-    return result;
+    // Build CPU systems for each phase value in configuration
+    let mut systems: Vec<CPU> = Vec::new();
+    for phase in configuration {
+        let cpu = build_cpu(&program, &vec![*phase]);
+        systems.push(cpu);
+    }
+
+    // The power sent from one amp to the next. Start with 0 for the first amp.
+    let mut power = 0;
+
+    // Run each amp, sending output to input until all the amp programs
+    // have terminated.
+    while !systems.iter().all(|cpu| cpu.is_terminated()) {
+        for i in 0..systems.len() {
+            // println!("AMP {i}");
+
+            systems[i].push_input(power);
+            systems[i].run();
+
+            assert!(systems[i].output.len() == 1);
+            power = systems[i].pop_output();
+        }
+    }
+
+    // println!("Configuration {configuration:?} ==> {power}");
+    return power;
 }
 
+fn part1(program: &Vec<i64>) -> i64 {
+    // Available AMP phases: 0, 1, 2, 3, 4
+    return permutations(0..5).iter()
+                .map(|configuration| run_configuration(&program, configuration))
+                .max().unwrap();
+}
 
-fn part2(_program: &Vec<i64>) -> i64 {
-    // for configuration in phase_permutations() {
-    //     let mut systems = vec![
-    //         build_cpu(&program, &vec![configuration[0], 0]),
-    //         build_cpu(&program, &vec![configuration[1]]),
-    //         build_cpu(&program, &vec![configuration[2]]),
-    //         build_cpu(&program, &vec![configuration[3]])
-    //     ];
-
-    //     for (i, cpu) in systems.iter().enumerate() {
-    //         cpu.run();
-    //         systems[cpu + 1 % systems.len()]
-    //     }
-    // }
-
-    return 0;
+fn part2(program: &Vec<i64>) -> i64 {
+    // Available AMP phases: 5, 6, 7, 8, 9
+    return permutations(5..10).iter()
+                .map(|configuration| run_configuration(&program, configuration))
+                .max().unwrap();
 }
 
 fn main() {
