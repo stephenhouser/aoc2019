@@ -32,7 +32,7 @@ impl CPU {
                 self.memory.resize(address+1, 0);
             }
 
-            println!("WRITE: {address}: {value}");
+            // println!("WRITE: {address}: {value}");
             self.memory[address] = value;
         };
 
@@ -383,7 +383,7 @@ fn build_cpu(program: &Vec<i64>, input: &Vec<i64>) -> CPU {
         base: 0,
         input: VecDeque::from_iter(input.clone()),
         output: VecDeque::new(),
-        debug: true,
+        debug: false,
     };
 }
 
@@ -397,10 +397,9 @@ fn read_data(filename: &str) -> Vec<i64> {
 }
 
 fn part1(program: &Vec<i64>) -> i64 {
+    // test mode input is 1
     let mut cpu = build_cpu(program, &vec![1]);
     cpu.run();
-
-    cpu.show_output();
 
     return if let Some(result) = cpu.output.front() {
         *result
@@ -410,7 +409,15 @@ fn part1(program: &Vec<i64>) -> i64 {
 }
 
 fn part2(program: &Vec<i64>) -> i64 {
-    return program.len() as i64;
+    // BOOST mode input is 2
+    let mut cpu = build_cpu(program, &vec![2]);
+    cpu.run();
+
+    return if let Some(result) = cpu.output.front() {
+        *result
+    } else {
+        0
+    };
 }
 
 fn main() {
