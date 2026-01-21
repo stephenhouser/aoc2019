@@ -1,4 +1,4 @@
-# Day 5: Sunny with a Chance of Asteroids
+# Day 7: Amplification Circuit
 
 Intcode, multiple instances, permutations of vector
 
