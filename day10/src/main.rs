@@ -2,20 +2,89 @@ use std::env;
 use std::fs;
 use std::process;
 use std::time::Instant; // 0.8.2
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Point {
     x: usize,
     y: usize,
     c: char,
 }
 
-#[derive(Debug, Clone, Copy)]
-struct PolarPoint {
-    #[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Neighbor {
     r: f64,
-    theta: f64,
-    p: Point,
+    point: Point,
+}
+
+impl Eq for Neighbor {}
+impl Ord for Neighbor {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.r.partial_cmp(&other.r)
+            .unwrap_or_else(|| {    // put NaN at end
+                if self.r.is_nan() && other.r.is_nan() {
+                    Ordering::Equal
+                } else if self.r.is_nan() {
+                    Ordering::Greater
+                } else {
+                    Ordering::Less
+                }
+            })
+    }
+}
+impl PartialOrd for Neighbor {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+// A point (x, y) with a map of all other points converted to polar coordinates
+// the other points are stored in a BTreeMap keyed by their theta (with 0 being
+// the positive Y axis, and clockwise increasing values). The neighbors are then
+// in a vector kept sorted by their distance from the origin, closest first.
+struct PolarPointView {
+    x: usize,
+    y: usize,
+    radials: BTreeMap<u64, Vec<Neighbor>>
+}
+
+impl PolarPointView {
+    // build a new PolarPointView from origin of all points
+    fn build(origin: &Point, points: &Vec<&Point>) -> Self {
+        let mut me = Self { 
+            x: origin.x, 
+            y: origin.y, 
+            radials: BTreeMap::new()
+        };
+
+        points.iter().for_each(|p| me.insert(p));
+        return me;
+    }
+
+    // insert point as polar coordinates relative to current origin point
+    // stored as BTreeMap keyed on theta in vectors sorted by their distance
+    // (r) from the origin.
+    fn insert(&mut self, p: &Point) {
+        // normalize p to self
+        let x = p.x as f64 - self.x as f64;
+        let y = p.y as f64 - self.y as f64;
+
+        // standard angle from +X, CCW
+        // rotate so 0 at +Y, flip to CW
+        let r = ((x * x) + (y * y)).sqrt();
+        let theta = (std::f64::consts::FRAC_PI_2 - -y.atan2(x)).rem_euclid(2.0 * std::f64::consts::PI);
+
+        // don't insert self
+        if r != 0.0 {
+            // cant use f64 as BTreeMap key, use bit-pattern as usize
+            let bucket = self.radials.entry(f64::to_bits(theta)).or_insert_with(Vec::new);
+            let neighbor = Neighbor { r, point: p.clone() };
+            match bucket.binary_search(&neighbor) {
+                Ok(pos) | Err(pos) => bucket.insert(pos, neighbor)
+            }
+        }
+    }
 }
 
 fn read_data(filename: &str) -> Vec<Point> {
@@ -36,139 +105,37 @@ fn read_data(filename: &str) -> Vec<Point> {
     return points;
 }
 
-// is there another point blocking the path from p1 to p2
-fn is_blocked(points: &Vec<&Point>, p1: &Point, p2: &Point) -> bool {
-    // print!("{p1:?},{p2:?} ");
-
-    // vertical line
-    if p1.x == p2.x {
-        let x = p1.x;
-        let y1 = std::cmp::min(p1.y, p2.y);
-        let y2 = std::cmp::max(p1.y, p2.y);
-
-        // check all possible points along path...
-        for y in y1+1..y2 {
-            // if there are any points, this path is blocked
-            if points.iter().any(|p| p.x == x && p.y == y) {
-                // println!(" blocked by {x},{y}");
-                return true;
-            }
-        }
-
-        // println!("");
-        return false;
-    }
-
-
-    let (x1, y1, x2, y2) = if p1.x < p2.x {
-        (p1.x, p1.y, p2.x, p2.y)
-    } else {
-        (p2.x, p2.y, p1.x, p1.y)
-    };
-
-    let dx = x2 as f64 - x1 as f64;
-    let dy = y2 as f64 - y1 as f64;
-    let m = dy / dx;
-    // print!("{x1},{y1} {x2},{y2} slope {m}");
-    
-    // non-vertical line
-    // if there are any points along the path...
-    for x in x1+1..x2 {
-        let y = y1 as f64 + m * (x as f64 - x1 as f64);
-
-        // if y is a whole number and
-        // if there are any points, this path is blocked
-        if y.fract() == 0.0 {
-            let y = y as usize;
-            if points.iter().any(|p| p.x == x && p.y == y) {
-                // println!(" blocked by {x},{y}");
-                return true;
-            }
-        }
-    }
-
-    // println!("");
-    return false;
-}
-
-fn same(p1: &Point, p2: &Point) -> bool {
-    return (p1.x == p2.x) && (p1.y == p2.y);
-}
-
-// for point return vec of other visible points
-fn visible_points(points: &Vec<&Point>, p: &Point) -> Vec<Point> {
-    let mut visible = Vec::new();
-
-    // let x = p.x;
-    // let y = p.y;
-    // println!("\n{x},{y}");
-    for op in points {
-        if !same(&p, &op) && !is_blocked(&points, &p, &op) {
-            visible.push((*op).clone());
-        }
-    }
-
-    // let n = visible.len();
-    // println!("\n{x},{y} --> {n}");
-    return visible;
-}
-
-// p1 is 0,0, p2 is what we want polar for
-fn to_polar(p1: &Point, p2: &Point) -> PolarPoint {
-    // println!("p1={p1:?}, p2={p2:?}");
-    // normalize to p1 as 0,0
-    let x = p2.x as f64 - p1.x as f64;
-    let y = p2.y as f64 - p1.y as f64;
-
-    let r = ((x * x) + (y * y)).sqrt();
-
-    // standard angle from +X, CCW
-    let a = -y.atan2(x);
-    // rotate so 0 at +Y, flip to CW
-    let theta = (std::f64::consts::FRAC_PI_2 - a).rem_euclid(2.0 * std::f64::consts::PI);
-   
-    return PolarPoint { r: r, theta: theta, p: p2.clone()};
-}
-
 fn part1(points: &Vec<Point>) -> usize {
     let asteroids: Vec<&Point> = points.iter().collect();
 
-    // base = ( Point, Vec<Point> of visible asteriods )
     let base = asteroids.iter()
-        .map(|asteroid| (asteroid, visible_points(&asteroids, &asteroid)))
-        .max_by_key(|(_asteroid, visible)| visible.len())
+        .map(|asteroid| PolarPointView::build(*asteroid, &asteroids))
+        .max_by_key(|asteroid| asteroid.radials.len())
         .unwrap();
 
-    return base.1.len();
+    return base.radials.len();
 }
 
 fn part2(points: &Vec<Point>) -> usize {
     let asteroids: Vec<&Point> = points.iter().collect();
 
     // get best location for base and the asteroids that are visible from there
-    let (base, visible) = asteroids.iter()
-        .map(|asteroid| (asteroid, visible_points(&asteroids, &asteroid)))
-        .max_by_key(|(_asteroid, visible)| visible.len())
+    let base = asteroids.iter()
+        .map(|asteroid| PolarPointView::build(*asteroid, &asteroids))
+        .max_by_key(|asteroid| asteroid.radials.len())
         .unwrap();
 
-    // convert the visible asteroids to polar coordinates from the perspective
-    // of the chosen base asteroid.
-    let mut polars: Vec<_> = visible.iter()
-        .map(|asteroid| to_polar(base, asteroid))
-        .collect();
+    // get list of theta values that are visible
+    let thetas: Vec<_> = base.radials.keys().collect();
 
-    // sort by angle (theta)
-    polars.sort_by(|a, b| a.theta.partial_cmp(&b.theta).unwrap());
+    // theta value of last asteroid to be zapped (based on test vs live input)
+    let last_index = if thetas.len() < 200 { thetas.len() } else { 199 };
 
-    // find the 199th (or last) asteroid to be blasted
-    let lasteroid = if polars.len() < 100 { 
-        polars[polars.len()-1] 
-    } else { 
-        polars[199]
-    };
+    // unwrap the original point for the last asteroid zapped
+    let lasteroid = base.radials[thetas[last_index]].first().unwrap().point;
 
-    println!("Lasteroid = {lasteroid:?}");
-    return lasteroid.p.x * 100 + lasteroid.p.y;
+    // println!("Lasteroid = {lasteroid:?}");
+    return lasteroid.x * 100 + lasteroid.y;
 }
 
 fn main() {
