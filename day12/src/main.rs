@@ -38,57 +38,63 @@ impl Body {
     fn energy(&self) -> u64 {
         return self.kenetic() * self.potential();
     }
-
-    // Return new body with velocity applied (possible new position)
-    fn apply_velocity(&self) -> Body {
-        return Body {
-            p: Point {
-                x:self.p.x + self.velocity.x,
-                y:self.p.y + self.velocity.y,
-                z:self.p.z + self.velocity.z,
-            },
-            velocity: self.velocity
-        };
-    }
-
+    
     // Return calculated gravity adjustment in 3 dimensions
     fn calculate_gravity(&self, moons: &Vec<Body>) -> Point {
-        let mut gravity = Point { x: 0, y: 0, z: 0 };
-
-        for other in moons {
-            gravity.x += match self.p.x.cmp(&other.p.x) {
+        // gravity between two objects as seen from point `a`
+        let calculate = |a: i64, b: i64| {
+            return match a.cmp(&b) {
                 Ordering::Greater => { -1 },
                 Ordering::Equal => { 0 },
                 Ordering::Less => { 1 },
             };
+        };
 
-            gravity.y += match self.p.y.cmp(&other.p.y) {
-                Ordering::Greater => { -1 },
-                Ordering::Equal => { 0 },
-                Ordering::Less => { 1 },
-            };
-
-            gravity.z += match self.p.z.cmp(&other.p.z) {
-                Ordering::Greater => { -1 },
-                Ordering::Equal => { 0 },
-                Ordering::Less => { 1 },
-            };
-        }
-
-
-        return gravity;
+        // fold all gravity calculations into Point
+        return moons.iter()
+            .fold(Point { x:0, y:0, z:0 }, |gravity, other| Point {
+                x: gravity.x + calculate(self.p.x, other.p.x),
+                y: gravity.y + calculate(self.p.y, other.p.y),
+                z: gravity.z + calculate(self.p.z, other.p.z)
+            });
     }
 
-    // Return new body with gravity applied (possible new velocity)
-    fn apply_gravity(&self, gravity: &Point) -> Body {
+    // // Return new body with gravity applied (possible new velocity)
+    // fn apply_gravity(&self, gravity: &Point) -> Body {
+    //     return Body { 
+    //         p: self.p, 
+    //         velocity: Point {
+    //             x: self.velocity.x + gravity.x,
+    //             y: self.velocity.y + gravity.y,
+    //             z: self.velocity.z + gravity.z,
+    //         }
+    //     };
+    // }
+
+    // // Return new body with velocity applied (possible new position)
+    // fn apply_velocity(&self) -> Body {
+    //     return Body {
+    //         p: Point {
+    //             x: self.p.x + self.velocity.x,
+    //             y: self.p.y + self.velocity.y,
+    //             z: self.p.z + self.velocity.z,
+    //         },
+    //         velocity: self.velocity
+    //     };
+    // }
+
+    // apply gravity and velocity in one step, return new Body
+    fn next_state(&self, gravity: &Point) -> Body {
         return Body { 
-            p: self.p, 
-            velocity: {
-                Point {
-                    x: self.velocity.x + gravity.x,
-                    y: self.velocity.y + gravity.y,
-                    z: self.velocity.z + gravity.z,
-                }
+            p: Point {
+                x: self.p.x + self.velocity.x + gravity.x,
+                y: self.p.y + self.velocity.y + gravity.y,
+                z: self.p.z + self.velocity.z + gravity.z,
+            },
+            velocity: Point {
+                x: self.velocity.x + gravity.x,
+                y: self.velocity.y + gravity.y,
+                z: self.velocity.z + gravity.z,
             }
         };
     }
@@ -126,8 +132,9 @@ fn part1(moons: &Vec<Body>) -> u64 {
     for _step in 1..=steps {
         next = next.iter()
             .map(|moon| (moon, moon.calculate_gravity(&next)))
-            .map(|(moon, gravity)| moon.apply_gravity(&gravity))
-            .map(|moon| moon.apply_velocity())
+            .map(|(moon, gravity)| moon.next_state(&gravity))
+            // .map(|(moon, gravity)| moon.apply_gravity(&gravity))
+            // .map(|moon| moon.apply_velocity())
             .collect();
     }
 
@@ -231,8 +238,9 @@ fn part2(moons: &Vec<Body>) -> u64 {
         step += 1;
         next = next.iter()
             .map(|moon| (moon, moon.calculate_gravity(&next)))
-            .map(|(moon, gravity)| moon.apply_gravity(&gravity))
-            .map(|moon| moon.apply_velocity())
+            .map(|(moon, gravity)| moon.next_state(&gravity))
+            // .map(|(moon, gravity)| moon.apply_gravity(&gravity))
+            // .map(|moon| moon.apply_velocity())
             .collect();
     }
 

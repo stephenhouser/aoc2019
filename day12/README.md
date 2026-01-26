@@ -15,13 +15,14 @@ Find where the system begins to loop. Where matches a previous state.
 
 Flibbergibbets, I think it's a chinese remainder therom problem or similar.
 
-- for a moon; will repeat when all moon positions are same and my vel repeats
-    next velocity is based only on relative positions.
+look for loops in each independent axis; x, y, z
 
-- find a moon's cycle
+- cache x axis and a velocity across all moons
+- cache y axis and a velocity across all moons
+- cache z axis and a velocity across all moons
 
-- for ecah moon cache positions+my_vel
+- look for when those repeat for the loop and loop length
 
-- simulate until each moon has repeated
+- least common multiple of the loop lengths
 
-- multiply those together for least common 
+could stop checking axis where loop was already found to make faster?
