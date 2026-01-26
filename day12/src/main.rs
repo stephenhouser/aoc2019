@@ -8,6 +8,7 @@ use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 
+// Just a point in space
 #[derive(Clone, Copy, Hash, Eq, PartialEq, Debug)]
 struct Point {
 	x: i64,
@@ -15,61 +16,30 @@ struct Point {
     z: i64,
 }
 
+// Represents a moon, has position and velocity
 #[derive(Clone, Copy, Hash, Eq, PartialEq, Debug)]
 struct Body {
     p: Point,
     velocity: Point,
 }
 
-impl Point {
-	// fn add(&mut self, other: &Point) {
-	// 	self.x += other.x;
-	// 	self.y += other.y;
-    //     self.z += other.z;
-	// }
-
-    // fn equal(&self, other: &Point) -> bool {
-    //     return self.x == other.x && self.y == other.y && self.z == other.z;
-    // }
-} 
-
-// fn pair_gravity(b1: &Body, b2: &Body) -> Point {
-//     return Point {
-//         x: match b1.p.x.cmp(&b2.p.x) {
-//             Ordering::Greater => { -1 },
-//             Ordering::Equal => { 0 },
-//             Ordering::Less => { 1 },
-//         },
-//         y: match b1.p.y.cmp(&b2.p.y) {
-//             Ordering::Greater => { -1 },
-//             Ordering::Equal => { 0 },
-//             Ordering::Less => { 1 },
-//         },
-//         z: match b1.p.z.cmp(&b2.p.z) {
-//             Ordering::Greater => { -1 },
-//             Ordering::Equal => { 0 },
-//             Ordering::Less => { 1 },
-//         },
-//     }
-// }
-
 impl Body {
-    // fn equal(&self, other: &Body) -> bool {
-    //     return self.p.equal(&other.p) && self.velocity.equal(&other.velocity);
-    // }
-
+    // Return kenetic energy
     fn kenetic(&self) -> u64 {
         return (self.p.x.abs() + self.p.y.abs() + self.p.z.abs()) as u64;
     }
     
+    // Return potential energy
     fn potential(&self) -> u64 {
         return (self.velocity.x.abs() + self.velocity.y.abs() + self.velocity.z.abs()) as u64;
     }
 
+    // Return total energy
     fn energy(&self) -> u64 {
         return self.kenetic() * self.potential();
     }
 
+    // Return new body with velocity applied (possible new position)
     fn apply_velocity(&self) -> Body {
         return Body {
             p: Point {
@@ -81,6 +51,7 @@ impl Body {
         };
     }
 
+    // Return calculated gravity adjustment in 3 dimensions
     fn calculate_gravity(&self, moons: &Vec<Body>) -> Point {
         let mut gravity = Point { x: 0, y: 0, z: 0 };
 
@@ -108,6 +79,7 @@ impl Body {
         return gravity;
     }
 
+    // Return new body with gravity applied (possible new velocity)
     fn apply_gravity(&self, gravity: &Point) -> Body {
         return Body { 
             p: self.p, 
@@ -122,8 +94,9 @@ impl Body {
     }
 }
 
+// Parse a single line that represents a moon
+// <x=3, y=5, z=-1>
 fn parse_moon(input: &str) -> Body {
-    // <x=3, y=5, z=-1>
     let parts: Vec<&str> = input.split(&['<', '=', ',', ' ', '>']).collect();
     let x = parts[2].parse::<i64>().unwrap();
     let y = parts[5].parse::<i64>().unwrap();
@@ -167,24 +140,30 @@ fn part1(moons: &Vec<Body>) -> u64 {
 
 // a hash key for the current position of all moons and the
 // velocity of moon n
-fn key_for(moon: &Body, gravity: &Point) -> u64 {
-    let mut hasher = DefaultHasher::new();
+fn hash_state(moons: &Vec<Body>) -> Vec<u64> {
+    let mut hashers = vec![
+        DefaultHasher::new(),   // x
+        DefaultHasher::new(),   // y
+        DefaultHasher::new(),   // z
+    ];
 
-    moon.p.x.hash(&mut hasher);
-    moon.p.y.hash(&mut hasher);
-    moon.p.z.hash(&mut hasher);
+    for moon in moons {
+        moon.p.x.hash(&mut hashers[0]);
+        moon.velocity.x.hash(&mut hashers[0]);
 
-    moon.velocity.x.hash(&mut hasher);
-    moon.velocity.y.hash(&mut hasher);
-    moon.velocity.z.hash(&mut hasher);
+        moon.p.y.hash(&mut hashers[1]);
+        moon.velocity.y.hash(&mut hashers[1]);
 
-    gravity.x.hash(&mut hasher);
-    gravity.y.hash(&mut hasher);
-    gravity.z.hash(&mut hasher);
+        moon.p.z.hash(&mut hashers[2]);
+        moon.velocity.z.hash(&mut hashers[2]);
+    }
     
-    return hasher.finish();
+    return hashers.iter()
+        .map(|h| h.finish())
+        .collect();
 }
 
+// Return Greatest Common Divisor of two numbers
 fn gcd(mut a: u64, mut b: u64) -> u64 {
     while b > 0 {
         let temp = b;
@@ -194,6 +173,7 @@ fn gcd(mut a: u64, mut b: u64) -> u64 {
     a
 }
 
+// Return Least Common Multiple of two numbers
 fn lcm(a: u64, b: u64) -> u64 {
     if a == 0 || b == 0 {
         0
@@ -201,7 +181,7 @@ fn lcm(a: u64, b: u64) -> u64 {
         (a * b) / gcd(a, b)
     }
 }
-// Function to compute LCM of a vector
+// Return Least Common Multiple of a vector
 fn lcm_v(numbers: &Vec<u64>) -> u64 {
     if numbers.is_empty() {
         return 0;
@@ -215,49 +195,39 @@ fn lcm_v(numbers: &Vec<u64>) -> u64 {
 }
 
 fn part2(moons: &Vec<Body>) -> u64 {
-    let mut moon_caches: Vec<HashMap<u64, u64>> = Vec::new();
-    for moon in moons {
-        moon_caches.push(HashMap::new());
-    }
+    // cache of each axis states (all the ones we have seen before)
+    let mut cache: Vec<HashMap<u64, u64>> = vec![
+        HashMap::new(),
+        HashMap::new(),
+        HashMap::new(),
+    ];
 
-    let mut repeater = vec![0; moons.len()];
-    let mut repeats =  vec![0; moons.len()];
+    // size of the loop on each axis
+    let mut axis_loop = vec![0; 3];
 
+    // clone so we can work with them
     let mut next = moons.clone();
-    // for step in 1..=2773 {
     let mut step = 0;
-    // while repeater.iter().any(|&n| n == 0) {
-    while repeats.iter().any(|&n| n < 2) {
-        let gravity: Vec<_> = next.iter()
-            .map(|moon| moon.calculate_gravity(&next))
-            .collect();
 
-        // snapshot of current state of each moon for caching
-        let states: Vec<_> = next.iter().enumerate()
-            .map(|(i, moon)| key_for(moon, &gravity[i]))
-            .collect();
+    // loop until we find a loop on all axes
+    while axis_loop.iter().any(|&n| n == 0) {
 
-        // print!("{step:4}: ");
-        // let m = next[0];
-        // let s = states[0];
-        // println!("{s}: {m:?}");
-    
-        for n in 0..moons.len() {
-            // if repeater[n] == 0 {
-                if moon_caches[n].contains_key(&states[n]) {
-                    let h = states[n];
-                    let first = moon_caches[n].get(&states[n]).unwrap();
-                    let diff = step - first;
-                    println!("Moon {n} repeats at step {step:6} from {first:6} - {diff:6}");
-                    moon_caches[n].insert(states[n], step);
-                    repeater[n] = step;
-                    repeats[n] += 1;
-                } else {
-                    moon_caches[n].insert(states[n].clone(), step.clone());
-                }    
-            // }
+        // compute hash of axis states
+        let state = hash_state(&next);
+        for (axis, &hash) in state.iter().enumerate() {
+
+            if axis_loop[axis] == 0 && cache[axis].contains_key(&hash) {
+                // if we have not already found the loop on this axis
+                // and the cache contains this state -- we are finding the loop now
+                let first = cache[axis].get(&hash).unwrap();
+                axis_loop[axis] = step - first; // save the loop size
+            } else {
+                // otherwise, cache the state
+                cache[axis].insert(hash, step);
+            }
         }
 
+        // step the system forward
         step += 1;
         next = next.iter()
             .map(|moon| (moon, moon.calculate_gravity(&next)))
@@ -266,10 +236,9 @@ fn part2(moons: &Vec<Body>) -> u64 {
             .collect();
     }
 
-    let result = lcm_v(&repeater);
-    println!("repeater={repeater:?} => {result}");
-
-    return moons.len() as u64;
+    // our answer is the LCM of the axis loop sizes
+    let result = lcm_v(&axis_loop);
+    return result;
 }
 
 fn main() {
