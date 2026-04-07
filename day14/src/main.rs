@@ -7,12 +7,12 @@ use std::collections::VecDeque;
 
 #[derive(Clone, Debug)]
 struct Reaction {
-    input: Vec<(String, u128)>,
+    input: Vec<(String, u64)>,
     output: String,
-    output_count: u128,
+    output_count: u64,
 }
 
-fn read_component(text: &str) -> (String, u128) {
+fn read_component(text: &str) -> (String, u64) {
     let parts: Vec<&str> = text.split_whitespace().collect();
 
     (parts[1].to_string(), parts[0].parse().unwrap())
@@ -48,12 +48,12 @@ fn read_data(filename: &str) -> HashMap<String, Reaction> {
 }
 
 // how many `base` to produce a `produce`
-fn satisfy(rules: &HashMap<String, Reaction>, element: &String, count: u128, base: &String) -> u128 {
-    let mut surplus: HashMap<String, u128> = HashMap::new();
-    let mut queue: VecDeque<(String, u128)> = VecDeque::new();
+fn satisfy(rules: &HashMap<String, Reaction>, element: &String, count: u64, base: &String) -> u64 {
+    let mut surplus: HashMap<String, u64> = HashMap::new();
+    let mut queue: VecDeque<(String, u64)> = VecDeque::new();
     queue.push_back((element.clone(), count));
 
-    let mut base_count: u128 = 0;
+    let mut base_count: u64 = 0;
     while let Some((element, amount)) = queue.pop_front() {
         //println!("Produce {} {}", amount, element);
         let available = surplus.get(&element).copied().unwrap_or(0);
@@ -90,20 +90,20 @@ fn satisfy(rules: &HashMap<String, Reaction>, element: &String, count: u128, bas
     return base_count;
 }
 
-fn part1(rules: &HashMap<String, Reaction>) -> u128 {
+fn part1(rules: &HashMap<String, Reaction>) -> u64 {
     satisfy(rules, &"FUEL".to_string(), 1, &"ORE".to_string())
 }
 
-fn part2(rules: &HashMap<String, Reaction>) -> u128 {
-    let trillion: u128 = 1000000000000;
+fn part2(rules: &HashMap<String, Reaction>) -> u64 {
+    let trillion: u64 = 1000000000000;
     let ore_per_fuel = satisfy(rules, &"FUEL".to_string(), 1, &"ORE".to_string());
 
     // track the highest amount of FUEL created (less than 1 trillion)
-    let mut best: u128 = 0;
+    let mut best: u64 = 0;
 
     // binary search for amount of FUEL created by 1000000000000 ORE
-    let mut lo: u128 = trillion / ore_per_fuel; 
-    let mut hi: u128 = trillion / (ore_per_fuel / 2);
+    let mut lo: u64 = trillion / ore_per_fuel; 
+    let mut hi: u64 = trillion / (ore_per_fuel / 2);
 
     while lo <= hi {
         let fuel = (lo + hi) / 2;
